@@ -61,14 +61,14 @@ export function WatchlistPage() {
           <TabsList className="bg-gray-900 border border-gray-800">
             <TabsTrigger 
               value="want"
-              className="data-[state=active]:bg-orange-600 data-[state=active]:text-white"
+              className="bg-gray-900/60 text-gray-300 border border-gray-800/80 hover:bg-gray-800/70 hover:text-white data-[state=active]:bg-orange-600 data-[state=active]:text-white data-[state=active]:border-orange-500/60"
             >
               <Bookmark className="w-4 h-4 mr-2" />
               Want to Watch ({wantToWatch.length})
             </TabsTrigger>
             <TabsTrigger 
               value="watched"
-              className="data-[state=active]:bg-orange-600 data-[state=active]:text-white"
+              className="bg-gray-900/60 text-gray-300 border border-gray-800/80 hover:bg-gray-800/70 hover:text-white data-[state=active]:bg-orange-600 data-[state=active]:text-white data-[state=active]:border-orange-500/60"
             >
               <Check className="w-4 h-4 mr-2" />
               Watched ({watched.length})
