@@ -65,10 +65,16 @@ export function SearchResultsPage() {
       <header className="border-b border-gray-800/50 backdrop-blur-sm sticky top-0 z-50 bg-gray-950/80">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Film className="w-8 h-8 text-orange-500" />
-              <span className="text-xl text-white">CineScope</span>
-            </div>
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 focus:outline-none group"
+            aria-label="CineScope Home"
+          >
+            <Film className="w-8 h-8 text-orange-500" />
+            <span className="text-xl text-white group-hover:text-orange-100 transition-colors">CineScope</span>
+          </button>
+
             <nav className="flex items-center gap-6">
               <Button 
                 variant="ghost" 

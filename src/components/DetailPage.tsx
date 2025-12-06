@@ -3,7 +3,6 @@ import { Film, Calendar, Star, Bookmark, Check, Play } from 'lucide-react';
 import { movies } from './mockData';
 import { Button } from './ui/button';
 import { useWatchlist } from './WatchlistContext';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts';
 
 export function DetailPage() {
   const { id } = useParams();
@@ -20,12 +19,6 @@ export function DetailPage() {
     );
   }
 
-  const sentimentData = [
-    { name: 'Positive', value: movie.sentiment.positive, color: '#22c55e' },
-    { name: 'Neutral', value: movie.sentiment.neutral, color: '#6b7280' },
-    { name: 'Negative', value: movie.sentiment.negative, color: '#ef4444' },
-  ];
-
   const recommendations = movies
     .filter(m => m.id !== movie.id && m.genres.some(g => movie.genres.includes(g)))
     .slice(0, 6);
@@ -38,10 +31,17 @@ export function DetailPage() {
       {/* Header */}
       <header className="border-b border-gray-800/50 backdrop-blur-sm sticky top-0 z-50 bg-gray-950/80">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 focus:outline-none group"
+            aria-label="CineScope Home"
+          >
             <Film className="w-8 h-8 text-orange-500" />
-            <span className="text-xl text-white">CineScope</span>
-          </div>
+            <span className="text-xl text-white group-hover:text-orange-100 transition-colors">CineScope</span>
+          </button>
+
+
           <nav className="flex items-center gap-6">
             <Button 
               variant="ghost" 
@@ -120,7 +120,7 @@ export function DetailPage() {
                     <Button
                       onClick={() => addToWatchlist(movie.id, 'watched')}
                       variant="outline"
-                      className="border-gray-700 text-white hover:bg-gray-800"
+                      className="border-orange-500/60 text-orange-100 hover:!text-orange-50 hover:!bg-orange-500/20 hover:border-orange-500 focus-visible:ring-2 focus-visible:ring-orange-500/60"
                     >
                       <Check className="w-4 h-4 mr-2" />
                       Mark as Watched
@@ -157,84 +157,6 @@ export function DetailPage() {
             <div>
               <h2 className="text-2xl text-white mb-4">Synopsis</h2>
               <p className="text-gray-400 leading-relaxed">{movie.synopsis}</p>
-            </div>
-
-            {/* Aggregated Scores */}
-            <div>
-              <h2 className="text-2xl text-white mb-6">Aggregated Scores</h2>
-              <div className="grid grid-cols-3 gap-6">
-                <div className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 border border-gray-700/50 rounded-xl p-6 text-center">
-                  <img 
-                    src="https://upload.wikimedia.org/wikipedia/commons/5/5b/Rotten_Tomatoes.svg" 
-                    alt="Rotten Tomatoes"
-                    className="h-8 mx-auto mb-3 opacity-80"
-                  />
-                  <div className="text-3xl text-white mb-1">{movie.scores.rottenTomatoes}%</div>
-                  <div className="text-gray-400">Rotten Tomatoes</div>
-                </div>
-                
-                <div className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 border border-gray-700/50 rounded-xl p-6 text-center">
-                  <div className="h-8 flex items-center justify-center mb-3">
-                    <span className="text-xl text-orange-500">MC</span>
-                  </div>
-                  <div className="text-3xl text-white mb-1">{movie.scores.metacritic}</div>
-                  <div className="text-gray-400">Metacritic</div>
-                </div>
-                
-                <div className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 border border-gray-700/50 rounded-xl p-6 text-center">
-                  <Star className="w-8 h-8 text-orange-500 mx-auto mb-3" />
-                  <div className="text-3xl text-white mb-1">{movie.scores.letterboxd}</div>
-                  <div className="text-gray-400">Letterboxd</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Sentiment Analysis */}
-            <div>
-              <h2 className="text-2xl text-white mb-6">Sentiment Analysis</h2>
-              <div className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 border border-gray-700/50 rounded-xl p-8">
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={sentimentData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, value }) => `${name}: ${value}%`}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {sentimentData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-8">
-            {/* Where to Watch */}
-            <div>
-              <h2 className="text-2xl text-white mb-4">Where to Watch</h2>
-              <div className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 border border-gray-700/50 rounded-xl p-6 space-y-3">
-                {movie.platforms.map((platform) => (
-                  <div
-                    key={platform}
-                    className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg border border-gray-700/50"
-                  >
-                    <span className="text-white">{platform}</span>
-                    <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
-                      <Play className="w-4 h-4 mr-1" />
-                      Watch
-                    </Button>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
         </div>
