@@ -1,16 +1,22 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Film, TrendingUp } from 'lucide-react';
+import { Search, TrendingUp } from 'lucide-react';
 import { MovieCard } from './MovieCard';
 import { loadCatalog, ALL_TAGS } from '../data/catalog';
-import { Button } from './ui/button';
 import { AppHeader } from './AppHeader';
+import { useWatchlist } from './WatchlistContext';
+import {
+  hasVectorData,
+  buildUserVecFromWatchedTitles,
+  rankTitlesByUserVec,
+} from '../data/recommendation';
 
 export function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
   const movies = useMemo(() => loadCatalog(), []);
   const genres = ALL_TAGS;
+  const { watchlist } = useWatchlist();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,11 +25,46 @@ export function HomePage() {
     }
   };
 
-  const trendingMovies = movies.slice(0, 8);
+  const trendingMovies = useMemo(() => {
+    // Personalized trending using Option B (watch history)
+    const normalize = (s: string) =>
+      s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+    const watchedIds = watchlist
+      .filter((i) => i.status === 'watched')
+      .map((i) => String(i.id));
+
+    const watchedTitles = movies
+      .filter((m) => watchedIds.includes(String(m.id)))
+      .map((m) => m.title);
+
+    if (hasVectorData() && watchedTitles.length > 0) {
+      const userVec = buildUserVecFromWatchedTitles(watchedTitles);
+      const ranked = rankTitlesByUserVec(userVec);
+
+      const byTitle = new Map(
+        movies.map((m) => [normalize(String(m.title)), m])
+      );
+
+      const recs: any[] = [];
+      for (const r of ranked) {
+        const match = byTitle.get(normalize(String(r.title)));
+        if (match) {
+          recs.push(match);
+          if (recs.length >= 8) break;
+        }
+      }
+
+      if (recs.length > 0) return recs;
+    }
+
+    // Fallback: most recent items from catalog
+    return [...movies]
+      .slice(0, 8);
+  }, [movies, watchlist]);
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
       <AppHeader />
 
       {/* Hero Section with Search */}
@@ -41,7 +82,7 @@ export function HomePage() {
           {/* Search Bar */}
           <form onSubmit={handleSearch} className="relative max-w-2xl mx-auto">
             <div className="relative">
-              <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
@@ -58,7 +99,7 @@ export function HomePage() {
       <div className="container mx-auto px-6 py-12">
         <div className="flex items-center gap-2 mb-8">
           <TrendingUp className="w-6 h-6 text-orange-500" />
-          <h2 className="text-2xl text-white">Trending Now</h2>
+          <h2 className="text-2xl text-white">Trending For You</h2>
         </div>
         
         <div className="overflow-x-auto pb-4 -mx-6 px-6">

@@ -1,7 +1,12 @@
 import { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Film, Calendar, Bookmark, Check } from 'lucide-react';
+import { Calendar, Bookmark, Check } from 'lucide-react';
 import { loadCatalog } from "../data/catalog";
+import {
+  hasVectorData,
+  buildUserVecFromSelectedTags,
+  rankTitlesByUserVec,
+} from "../data/recommendation";
 import { Button } from './ui/button';
 import { useWatchlist } from './WatchlistContext';
 import { AppHeader } from './AppHeader';
@@ -24,13 +29,41 @@ export function DetailPage() {
 
   const movieTags: string[] = (movie as any).tags ?? (movie as any).genres ?? [];
 
-  const recommendations = movies
-    .filter(m => {
-      if (String(m.id) === String(movie.id)) return false;
-      const tags = (m as any).tags ?? (m as any).genres ?? [];
-      return movieTags.length === 0 ? true : tags.some((t: string) => movieTags.includes(t));
-    })
-    .slice(0, 6);
+  const recommendations = useMemo(() => {
+    // Build a quick lookup of catalog movies by normalized title
+    const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    const byTitle = new Map<string, any>(
+      movies.map(m => [normalize(String(m.title)), m])
+    );
+
+    // Prefer cosine similarity using movies.json tag-score vectors
+    if (hasVectorData() && movieTags.length > 0) {
+      const userVec = buildUserVecFromSelectedTags(movieTags);
+      const ranked = rankTitlesByUserVec(userVec);
+
+      const recs: any[] = [];
+      for (const r of ranked) {
+        // Skip the current movie title
+        if (normalize(r.title) === normalize(String(movie.title))) continue;
+        const match = byTitle.get(normalize(r.title));
+        if (match) {
+          recs.push(match);
+          if (recs.length >= 6) break;
+        }
+      }
+
+      if (recs.length > 0) return recs;
+    }
+
+    // fallback: simple tag overlap
+    return movies
+      .filter(m => {
+        if (String(m.id) === String(movie.id)) return false;
+        const tags = (m as any).tags ?? (m as any).genres ?? [];
+        return movieTags.length === 0 ? true : tags.some((t: string) => movieTags.includes(t));
+      })
+      .slice(0, 6);
+  }, [movies, movie.title, movie.id, movieTags]);
 
   const inWatchlist = isInWatchlist(movie.id);
   const status = getStatus(movie.id);
@@ -168,11 +201,17 @@ export function DetailPage() {
                     className="group w-full text-left"
                   >
                     <div className="relative overflow-hidden rounded-xl mb-3 aspect-[2/3] bg-gray-800">
-                      <img
-                        src={rec.poster}
-                        alt={rec.title}
-                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                      />
+                      {rec.poster ? (
+                        <img
+                          src={rec.poster}
+                          alt={rec.title}
+                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-500 text-sm">
+                          No poster
+                        </div>
+                      )}
                     </div>
                     <h3 className="text-white group-hover:text-orange-500 transition-colors line-clamp-1">
                       {rec.title}

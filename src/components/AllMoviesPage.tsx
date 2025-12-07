@@ -1,23 +1,65 @@
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { loadCatalog, ALL_TAGS } from "../data/catalog";
+import {
+  hasVectorData,
+  buildUserVecFromSelectedTags,
+  buildUserVecFromWatchedTitles,
+  rankTitlesByUserVec,
+} from "../data/recommendation";
 import { MovieCard } from "./MovieCard";
 import { Checkbox } from "./ui/checkbox";
 import { AppHeader } from "./AppHeader";
+import { useWatchlist } from "./WatchlistContext";
 
 export function AllMoviesPage() {
   const movies = useMemo(() => loadCatalog(), []);
   const genres = ALL_TAGS;
+  const { watchlist } = useWatchlist();
 
   const [query, setQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<"rating" | "year" | "title">("rating");
+  const [sortBy, setSortBy] = useState<
+    "relevance" | "rating" | "year" | "title"
+  >("relevance");       // make Relevance the default dropdown selection
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     );
   };
+
+  const relevanceMap = useMemo(() => {
+    // If we can't read tags/scores, don't attempt relevance sorting
+    if (!hasVectorData()) {
+      return new Map<string, number>();
+    }
+
+    let userVec: number[] | null = null;
+
+    // Option A: explicit selections win
+    if (selectedTags.length > 0) {
+      userVec = buildUserVecFromSelectedTags(selectedTags);
+    } else {
+      // Option B: infer from watched history
+      const watchedIds = watchlist
+        .filter((i) => i.status === "watched")
+        .map((i) => String(i.id));
+
+      const watchedTitles = movies
+        .filter((m) => watchedIds.includes(String(m.id)))
+        .map((m) => m.title);
+
+      if (watchedTitles.length > 0) {
+        userVec = buildUserVecFromWatchedTitles(watchedTitles);
+      }
+    }
+
+    if (!userVec) return new Map<string, number>();
+
+    const ranked = rankTitlesByUserVec(userVec);
+    return new Map(ranked.map((r) => [r.title.toLowerCase(), r.score]));
+  }, [selectedTags, watchlist, movies]);
 
   const filtered = movies
     .filter((m) =>
@@ -32,6 +74,11 @@ export function AllMoviesPage() {
         : selectedTags.some((t) => tags.includes(t));
     })
     .sort((a, b) => {
+      if (sortBy === "relevance") {
+        const sa = relevanceMap.get(a.title.toLowerCase()) ?? 0;
+        const sb = relevanceMap.get(b.title.toLowerCase()) ?? 0;
+        return sb - sa;
+      }
       if (sortBy === "rating") return (b.rating ?? 0) - (a.rating ?? 0);
       if (sortBy === "year") return (b.year ?? 0) - (a.year ?? 0);
       return a.title.localeCompare(b.title);
@@ -44,7 +91,7 @@ export function AllMoviesPage() {
       {/* Roomy page padding */}
       <div className="container mx-auto px-6 py-20">
         {/* Force side-by-side layout */}
-        <div className="flex flex-row items-start gap-11">
+        <div className="flex flex-row items-start gap-12">
           {/* Left filter */}
           <aside className="w-72 sticky top-24 self-start flex-shrink-0">
             <div className="bg-gradient-to-br from-gray-900/70 to-gray-950/70 border border-gray-800/60 rounded-xl">
@@ -61,7 +108,7 @@ export function AllMoviesPage() {
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
                       placeholder="Search titles..."
-                      className="w-full bg-gray-950/40 border border-gray-800 rounded-lg py-2 pl-12 pr-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+                      className="w-full bg-gray-950/40 border border-gray-800 rounded-lg py-2 pl-14 pr-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50"
                     />
                   </div>
                 </div>
@@ -96,7 +143,9 @@ export function AllMoviesPage() {
               <div className="flex items-center justify-between mb-10">
                 <h1 className="text-3xl text-white">
                   All Movies{" "}
-                  <span className="text-gray-500 text-base">({filtered.length})</span>
+                  <span className="text-gray-500 text-base">
+                    ({filtered.length})
+                  </span>
                 </h1>
 
                 <div className="flex items-center gap-2">
@@ -109,6 +158,7 @@ export function AllMoviesPage() {
                     <option value="rating">Rating</option>
                     <option value="year">Year</option>
                     <option value="title">Title</option>
+                    <option value="relevance">Relevance</option>
                   </select>
                 </div>
               </div>
