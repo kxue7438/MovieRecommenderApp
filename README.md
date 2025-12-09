@@ -36,7 +36,7 @@ CineScope is a high-quality web application that aggregates movie and TV show re
 
     npm run dev
 
-4. Open the app in your browser (default at http://localhost:3000).
+4. Open the app in your browser (https://kxue7438.github.io/MovieRecommenderApp/ or default at http://localhost:3000).
 
 ## Technologies Used
 
